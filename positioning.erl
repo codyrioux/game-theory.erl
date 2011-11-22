@@ -1,48 +1,42 @@
 -module(positioning).
 -export([start/0]).
 
-start() ->
-%  io:format("Solving the positioning problem for X entrants.~nAssuming percentages are continuous whole numbers between 0 and 100.~n"),
-  get_score_maximizing_positions([26, 75, 100, 50]).
+start() -> lists:reverse(solve([a, b, c], [])).
 
-solve(PlayerCount) -> solve(1, PlayerCount).
-solve(X, PlayerCount) when X =< PlayerCount -> 0 .
-solve(X, PlayerCount, Selections) when X =:= PlayerCount ->
-  lists:nth(1, get_score_maximizing_positions(Selections)).
+% Recursive function that applies minimax algorithm to find optimal game state.
+solve([Player|RemainingPlayers], Positions) ->
+  PossibleConfigurations = get_possible_configurations(Player, Positions),
+  ConfigurationScores = lists:map(fun(X) -> {Player, X, score(Player, solve(RemainingPlayers, [X] ++ Positions))} end, PossibleConfigurations),
+  {_, SelectedPosition, _} = lists:nth(length(ConfigurationScores), sort_scores(ConfigurationScores)),
+  solve(RemainingPlayers, [SelectedPosition] ++ Positions);
+solve([], Positions) -> Positions.
 
-% Gives us all the available positions that will maximize our score given the current selections
-get_score_maximizing_positions(Selections) ->
-  AvailablePositions = lists:subtract(lists:seq(1, 100), Selections),
-  MaxScore = lists:max(lists:map(fun(Y) -> score(Y, Selections) end, AvailablePositions)),
-  lists:filter(fun(X) -> score(X, Selections) =:= MaxScore end, AvailablePositions).
+get_possible_configurations(Player, Positions) -> [{Player, Y} || Y <- get_available_positions(Positions)].
+get_available_positions(Positions) -> lists:subtract(lists:seq(1, 100), lists:map(fun({_, X}) -> X end, Positions)).
 
+% Functions for determining the score of the game given the current player and final game state.
+score(Player, Positions) ->
+  WorkingList = sort_positions(Positions),
+  {Player, PlayersPosition} = lists:nth(1, lists:filter(fun({P, _Pos}) -> Player =:= P end, WorkingList)),
+  PlayerIndex = index_of({Player, PlayersPosition}, WorkingList),
+  get_upper_score_contribution(PlayerIndex, WorkingList, length(WorkingList), PlayersPosition) +
+  get_lower_score_contribution(PlayerIndex, WorkingList, PlayersPosition).
 
-% Determines your score based on the given position and the current selections.
-score(Position, Selections) ->
-  get_upper_score_contribution(Position, Selections) + get_lower_score_contribution(Position, Selections).
-
-get_upper_score_contribution(Position, Selections) ->
-  WorkingList = lists:sort([Position] ++ Selections),
-  PositionIndex = index_of(Position, WorkingList),
-  Length = length(WorkingList),
-  if
-      PositionIndex =:= Length ->
-        (100 - Position); %We are the top and we get all the score from us to 100 from above
-      true ->
-        (lists:nth(PositionIndex + 1, WorkingList) - Position) / 2
+get_upper_score_contribution(PlayerIndex, WorkingList, ListLength, PlayersPosition) ->
+  if PlayerIndex =:= ListLength -> (100 - PlayersPosition);
+     true -> {_, UpperScore} = lists:nth(PlayerIndex + 1, WorkingList), (UpperScore - PlayersPosition) / 2
+  end.
+get_lower_score_contribution(PlayerIndex, WorkingList, PlayersPosition) ->
+  if PlayerIndex =:= 1 -> (PlayersPosition);
+     true -> {_, LowerScore} = lists:nth(PlayerIndex - 1, WorkingList), (PlayersPosition - LowerScore) / 2
   end.
 
-get_lower_score_contribution(Position, Selections) -> 
-  WorkingList = lists:sort([Position] ++ Selections),
-  PositionIndex = index_of(Position, WorkingList),
-  if
-      PositionIndex =:= 1 ->
-        (Position); % We are the bottom and get all the score between zero and us
-      true ->
-        (Position - lists:nth(PositionIndex - 1, WorkingList)) / 2
-  end.
+% Sorts a list of {Player, {Player, Position}, Score} 
+sort_scores(L) -> lists:sort(fun(A, B) -> {_, _, AScore} = A, {_, _, BScore} = B, AScore =< BScore end, L).
+% Sorts a list of {Player, Position} lowest to highest position
+sort_positions(L) -> lists:sort(fun(A, B) -> {_, APos} = A, {_, BPos} = B, APos =< BPos end, L).
 
-% Helper Functions
+% Returns the index of the item in the list
 index_of(Item, List) -> index_of(Item, List, 1).
 index_of(_, [], _)  -> not_found;
 index_of(Item, [Item|_], Index) -> Index;
