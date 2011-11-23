@@ -1,7 +1,30 @@
+% A naive extension of minimax to solve a multi-player positioning game.
+% Author: Cody Rioux
+% Email: cody.rioux@gmail.com
+% Site: http://codyrioux.github.com
+%
+% A word of caution, this algorithm has a high computational complexity and takes a very long
+% time to run with inputs greater than four players. I mean it. I'd recommend making supper
+% after setting the algorithm loose on six or more players. Ten or more I'd recommend letting
+% it run while you're on vacation.
+%
+% The slowness of this algorithm can be blamed on three things:
+% 1 - High computational complexity
+% 2 - Naive Implementation
+% 3 - My general lack of understanding on how recursion and concurrency in erlang works
+%
+% The nice part about point three is that it offers a learning opportunity for me.
+% As I work through learning erlang I expect to improve the recursion and create a concurrent
+% version of this that can be run on multiple processors or even multiple machines for larger
+% problem inputs.
+
 -module(positioning).
 -export([start/0]).
 
-start() -> lists:reverse(solve([a, b, c, d], [])).
+% Two lists are passed to solve.
+% The first is a list of players, any token can be used to represent players.
+% The second is a list of positions and must be in the form of [{a,25},{b,75},{c,74}]
+start() -> lists:reverse(solve([a, b, c], [])).
 
 
 %%%%%%%%%%%%%%%%%%%%%
