@@ -1,9 +1,13 @@
 -module(positioning).
 -export([start/0]).
 
-start() -> lists:reverse(solve([a, b, c], [])).
+start() -> lists:reverse(solve([a, b, c, d], [])).
 
-% Recursive function that applies minimax algorithm to find optimal game state.
+
+%%%%%%%%%%%%%%%%%%%%%
+%%% The Algorithm %%%
+%%%%%%%%%%%%%%%%%%%%%
+
 solve([Player|RemainingPlayers], Positions) ->
   PossibleConfigurations = get_possible_configurations(Player, Positions),
   ConfigurationScores = lists:map(fun(X) -> {Player, X, score(Player, solve(RemainingPlayers, [X] ++ Positions))} end, PossibleConfigurations),
@@ -11,10 +15,10 @@ solve([Player|RemainingPlayers], Positions) ->
   solve(RemainingPlayers, [SelectedPosition] ++ Positions);
 solve([], Positions) -> Positions.
 
-get_possible_configurations(Player, Positions) -> [{Player, Y} || Y <- get_available_positions(Positions)].
-get_available_positions(Positions) -> lists:subtract(lists:seq(1, 100), lists:map(fun({_, X}) -> X end, Positions)).
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Scoring Functions %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Functions for determining the score of the game given the current player and final game state.
 score(Player, Positions) ->
   WorkingList = sort_positions(Positions),
   {Player, PlayersPosition} = lists:nth(1, lists:filter(fun({P, _Pos}) -> Player =:= P end, WorkingList)),
@@ -31,8 +35,16 @@ get_lower_score_contribution(PlayerIndex, WorkingList, PlayersPosition) ->
      true -> {_, LowerScore} = lists:nth(PlayerIndex - 1, WorkingList), (PlayersPosition - LowerScore) / 2
   end.
 
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Helper Functions %%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+get_possible_configurations(Player, Positions) -> [{Player, Y} || Y <- get_available_positions(Positions)].
+get_available_positions(Positions) -> lists:subtract(lists:seq(1, 100), lists:map(fun({_, X}) -> X end, Positions)).
+
 % Sorts a list of {Player, {Player, Position}, Score} 
 sort_scores(L) -> lists:sort(fun(A, B) -> {_, _, AScore} = A, {_, _, BScore} = B, AScore =< BScore end, L).
+
 % Sorts a list of {Player, Position} lowest to highest position
 sort_positions(L) -> lists:sort(fun(A, B) -> {_, APos} = A, {_, BPos} = B, APos =< BPos end, L).
 
